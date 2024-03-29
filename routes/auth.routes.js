@@ -1,5 +1,7 @@
 const router = require("express").Router();
 const mongoose = require("mongoose");
+const multer = require("multer");
+const upload = multer({ dest: './public/uploads' });
 
 // ℹ️ Handles password encryption
 const bcryptjs = require("bcryptjs");
@@ -21,10 +23,11 @@ const { isLoggedIn, isLoggedOut } = require("../middleware/route-guard.js");
 router.get("/signup", isLoggedOut, (req, res) => res.render("auth/signup"));
 
 // .post() route ==> to process form data
-router.post("/signup", isLoggedOut, (req, res, next) => {
+router.post("/signup", upload.single('filename'), isLoggedOut, (req, res, next) => {
   const { username, email, password } = req.body;
+  const filename = req.file.filename;
 
-  if (!username || !email || !password) {
+  if (!username || !email || !password || !filename) {
     res.render("auth/signup", {
       errorMessage: "All fields are mandatory. Please provide your username, email and password."
     });
@@ -51,12 +54,13 @@ router.post("/signup", isLoggedOut, (req, res, next) => {
         // passwordHash => this is the key from the User model
         //     ^
         //     |            |--> this is placeholder (how we named returning value from the previous method (.hash()))
-        passwordHash: hashedPassword
+        passwordHash: hashedPassword,
+        imgPath: `/uploads/${filename}`
       });
     })
     .then((userFromDB) => {
       // console.log("Newly created user is: ", userFromDB);
-      res.redirect("/user-profile");
+      res.redirect(`/user-profile/${userFromDB._id}`);
     })
     .catch((error) => {
       if (error instanceof mongoose.Error.ValidationError) {
@@ -96,7 +100,7 @@ router.post("/login", isLoggedOut, (req, res, next) => {
         return;
       } else if (bcryptjs.compareSync(password, user.passwordHash)) {
         req.session.currentUser = user;
-        res.redirect("/user-profile");
+        res.redirect(`/user-profile/${user._id}`);
       } else {
         res.render("auth/login", { errorMessage: "Incorrect password." });
       }
@@ -113,8 +117,11 @@ router.post("/logout", isLoggedIn, (req, res) => {
   res.redirect("/");
 });
 
-router.get("/user-profile", isLoggedIn, (req, res) => {
-  res.render("users/user-profile");
+router.get("/user-profile/:id", isLoggedIn, (req, res) => {
+  const id = req.params.id
+  User.findById(id)
+    .then(user => res.render("users/user-profile", { user }))
+    .catch(error => console.log(error));
 });
 
 module.exports = router;

@@ -1,0 +1,22 @@
+<div id="form">
+  <h2>Post</h2>
+  <form action="/post-create" method="POST" enctype="multipart/form-data">
+
+    <label>
+      Context
+      <textarea name="content" rows="4" cols="40"></textarea>
+    </label>
+
+    <label>Image
+      <input type="file" name="filename" />
+    </label>
+
+    <button type="submit">Create post</button>
+
+    {{! error message will be added here }}
+
+    {{#if errorMessage}}
+      <p class="error">{{errorMessage}}</p>
+    {{/if}}
+  </form>
+</div>
